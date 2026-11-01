@@ -1,0 +1,38 @@
+name: Buduj ISO Systemu
+
+on: [push]
+
+jobs:
+  build:
+  runs-on: ubuntu-latest
+  steps:
+    - name: Pobierz kod źródłowy
+      uses: actions/checkout@v4
+
+    - name: Instalacja narzedzi kompilacji i xorriso
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc xorriso grub-pc-bin mtools
+
+    - name: Kompilacja programu glownego
+      run: |
+        mkdir -p build/iso/boot/grub
+        gcc -static src/main.c -o build/iso/boot/kernel.bin -lm
+
+    - name: Utworzenie pliku konfiguracyjnego GRUB
+      run: |
+        echo "set timeout=0" > build/iso/boot/grub/grub.cfg
+        echo "set default=0" >> build/iso/boot/grub/grub.cfg
+        echo "menuentry \"Moj System\" {" >> build/iso/boot/grub/grub.cfg
+        echo "    multiboot /boot/kernel.bin" >> build/iso/boot/grub/grub.cfg
+        echo "}" >> build/iso/boot/grub/grub.cfg
+
+    - name: Generowanie obrazu ISO
+      run: |
+        grub-mkrescue -o moj_system.iso build/iso
+
+    - name: Przechowywanie artefaktu ISO
+      uses: actions/upload-artifact@v4
+      with:
+        name: moj-system-iso
+        path: moj_system.iso
